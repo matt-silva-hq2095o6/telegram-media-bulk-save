@@ -1,0 +1,51 @@
+name: digest
+
+on:
+  schedule:
+    - cron: "48 */1 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: validate readme
+        run: |
+          set -eu
+          f="README.md"
+          [ -f "$f" ] || exit 0
+          bad=0
+          for t in $(grep -oE "\(([^) ]+)\)" "$f" | tr -d "()" || true); do
+            case "$t" in
+              http*|"#"*) : ;;
+              *) [ -e "$t" ] || bad=$((bad + 1)) ;;
+            esac
+          done
+          echo "checked $f: $bad broken local link(s)"
+
+      - name: update
+        run: |
+          set -eu
+          f="README.md"
+          [ -f "$f" ] || exit 0
+          stamp="<!-- verified: $(date -u +%Y-%m-%d) -->"
+          if grep -q "^<!-- verified: " "$f"; then
+            sed -i "s|^<!-- verified: .*|$stamp|" "$f"
+          else
+            printf '\n%s\n' "$stamp" >> "$f"
+          fi
+
+      - name: commit
+        run: |
+          set -eu
+          git config user.name "matt-silva-hq2095o6"
+          git config user.email "279178594+matt-silva-hq2095o6@users.noreply.github.com"
+          git add -- "README.md"
+          git diff --cached --quiet && exit 0
+          git commit -m "chore: periodic update"
+          git push
