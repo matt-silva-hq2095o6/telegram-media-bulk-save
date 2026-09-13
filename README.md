@@ -35,3 +35,5 @@ Only download files larger than 10MB:
 ```cmd
 python bulk_save.py --chat channel_username --min-size 10485760
 ```
+
+<!-- verified: 2026-09-13 -->
